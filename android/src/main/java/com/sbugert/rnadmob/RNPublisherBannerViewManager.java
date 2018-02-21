@@ -2,7 +2,11 @@ package com.sbugert.rnadmob;
 
 import android.content.Context;
 import android.support.annotation.Nullable;
+import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
@@ -34,6 +38,9 @@ class ReactPublisherAdView extends ReactViewGroup implements AppEventListener {
     AdSize[] validAdSizes;
     String adUnitID;
     AdSize adSize;
+    String targetString = null;
+    int fixedWidth = 0;
+    int fixedHeight = 0;
 
     public ReactPublisherAdView(final Context context) {
         super(context);
@@ -53,6 +60,31 @@ class ReactPublisherAdView extends ReactViewGroup implements AppEventListener {
                 int height = adView.getAdSize().getHeightInPixels(context);
                 int left = adView.getLeft();
                 int top = adView.getTop();
+
+                if (adView.getAdUnitId().split("/")[adView.getAdUnitId().split("/").length - 1].equals("native1") || adView.getAdUnitId().split("/")[adView.getAdUnitId().split("/").length - 1].equals("native2")) {
+                    WindowManager mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+                    Display display = mWindowManager.getDefaultDisplay();
+                    DisplayMetrics displaymetrics = new DisplayMetrics();
+                    display.getMetrics(displaymetrics);
+
+                    if (display.getRotation() == Surface.ROTATION_0 || display.getRotation() == Surface.ROTATION_180) {
+                        if (fixedWidth > 304) {
+                            adView.setAdSizes(new AdSize(205, fixedHeight));
+                        } else {
+                            adView.setAdSizes(new AdSize(fixedWidth, fixedHeight));
+                        }
+                    }
+
+                    if (display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
+                        adView.setAdSizes(new AdSize(fixedWidth, fixedHeight));
+                    }
+
+                    width = adView.getAdSize().getWidthInPixels(context);
+                    height = adView.getAdSize().getHeightInPixels(context);
+                    left = adView.getLeft();
+                    top = adView.getTop();
+                }
+
                 adView.measure(width, height);
                 adView.layout(left, top, left + width, top + height);
                 sendOnSizeChangeEvent();
@@ -146,6 +178,19 @@ class ReactPublisherAdView extends ReactViewGroup implements AppEventListener {
         this.adView.setAdSizes(adSizesArray);
 
         PublisherAdRequest.Builder adRequestBuilder = new PublisherAdRequest.Builder();
+        if (targetString != null) {
+            String[] parts = targetString.split("\\|");
+            for (String s : parts) {
+                if (s.contains(":")) {
+                    if (s.split(":").length > 1) {
+                        if (s.split(":")[0] != "" && s.split(":")[1] != "") {
+                            adRequestBuilder.addCustomTargeting(s.split(":")[0], s.split(":")[1]);
+                        }
+                    }
+                }
+            }
+        }
+
         if (testDevices != null) {
             for (int i = 0; i < testDevices.length; i++) {
                 adRequestBuilder.addTestDevice(testDevices[i]);
@@ -177,6 +222,18 @@ class ReactPublisherAdView extends ReactViewGroup implements AppEventListener {
         this.validAdSizes = adSizes;
     }
 
+    public void setTargeting(String targeting) {
+        this.targetString = targeting;
+    }
+
+    public void setPropFixedHeight(int height) {
+        this.fixedHeight = height;
+    }
+
+    public void setPropFixedWidth(int width) {
+        this.fixedWidth = width;
+    }
+
     @Override
     public void onAppEvent(String name, String info) {
         WritableMap event = Arguments.createMap();
@@ -194,6 +251,9 @@ public class RNPublisherBannerViewManager extends ViewGroupManager<ReactPublishe
     public static final String PROP_VALID_AD_SIZES = "validAdSizes";
     public static final String PROP_AD_UNIT_ID = "adUnitID";
     public static final String PROP_TEST_DEVICES = "testDevices";
+    public static final String PROP_BANNER_TARGETING = "targeting";
+    public static final String PROP_FIXED_WIDTH = "fixedWidth";
+    public static final String PROP_FIXED_HEIGHT = "fixedHeight";
 
     public static final String EVENT_SIZE_CHANGE = "onSizeChange";
     public static final String EVENT_AD_LOADED = "onAdLoaded";
@@ -204,6 +264,8 @@ public class RNPublisherBannerViewManager extends ViewGroupManager<ReactPublishe
     public static final String EVENT_APP_EVENT = "onAppEvent";
 
     public static final int COMMAND_LOAD_BANNER = 1;
+    private int fixedWidth = 0;
+    private int fixedHeight = 0;
 
     @Override
     public String getName() {
@@ -271,6 +333,25 @@ public class RNPublisherBannerViewManager extends ViewGroupManager<ReactPublishe
         ArrayList<Object> list = nativeArray.toArrayList();
         view.setTestDevices(list.toArray(new String[list.size()]));
     }
+
+     @ReactProp(name = PROP_FIXED_WIDTH)
+     public void setPropFixedWidth(final ReactPublisherAdView view, final String widthString) {
+        fixedWidth = Integer.parseInt(widthString);
+        view.setPropFixedWidth(fixedWidth);
+        view.setAdSize(new AdSize(fixedWidth, fixedHeight));
+     }
+
+     @ReactProp(name = PROP_FIXED_HEIGHT)
+     public void setPropFixedHeight(final ReactPublisherAdView view, final String heightString) {
+        fixedHeight = Integer.parseInt(heightString);
+        view.setPropFixedHeight(fixedHeight);
+        view.setAdSize(new AdSize(fixedWidth, fixedHeight));
+     }
+
+     @ReactProp(name = PROP_BANNER_TARGETING)
+     public void setTargeting(final ReactPublisherAdView view, final String targetingString) {
+        view.setTargeting(targetingString);
+     }
 
     private AdSize getAdSizeFromString(String adSize) {
         switch (adSize) {
