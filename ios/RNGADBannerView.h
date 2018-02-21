@@ -11,6 +11,9 @@
 @interface RNGADBannerView : RCTView <GADBannerViewDelegate, GADAdSizeDelegate>
 
 @property (nonatomic, copy) NSArray *testDevices;
+@property (nonatomic, copy) NSString *targeting;
+@property (nonatomic, copy) NSString *fixedWidth;
+@property (nonatomic, copy) NSString *fixedHeight;
 
 @property (nonatomic, copy) RCTBubblingEventBlock onSizeChange;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdLoaded;
