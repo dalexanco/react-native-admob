@@ -51,8 +51,6 @@
         int compteur = (int)[array count] - 1;
         NSString *finString = [array objectAtIndex:compteur];
 
-        [_bannerView setAppEventDelegate:self];
-
         if (!CGRectEqualToRect(self.bounds, _bannerView.bounds)) {
             if ([finString isEqualToString:@"native1"] || [finString isEqualToString:@"native2"]) {
                 self.onSizeChange(@{
