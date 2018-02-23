@@ -52,14 +52,52 @@
 #pragma clang diagnostic pop
 
 - (void)loadBanner {
-    GADRequest *request = [GADRequest request];
-    request.testDevices = _testDevices;
-    [_bannerView loadRequest:request];
+    if (_targeting) {
+        NSArray *array = [_bannerView.adUnitID componentsSeparatedByString:@"/"];
+        int compteur = (int)[array count] - 1;
+        NSString *finString = [array objectAtIndex:compteur];
+
+        [_bannerView setAppEventDelegate:self];
+
+        if(!CGRectEqualToRect(self.bounds, _bannerView.bounds)) {
+            if ([finString isEqualToString:@"native1"] || [finString isEqualToString:@"native2"]) {
+                self.onSizeChange(@{
+                                    @"width": [NSNumber numberWithFloat: [_fixedWidth intValue]],
+                                    @"height": [NSNumber numberWithFloat: [_fixedHeight intValue]]
+                                    });
+            }
+        }
+
+        DFPRequest *request = [DFPRequest request];
+        if ([_targeting length] > 0) {
+            NSArray *array = [_targeting componentsSeparatedByString:@"|"];
+            NSMutableDictionary *customtargeting = [[NSMutableDictionary alloc] initWithCapacity:[array count]];
+
+            for (int i = 0 ; i < [array count] ; i++) {
+                id objet = [array objectAtIndex:i];
+                if ([objet length] > 0 && objet) {
+                    NSArray *array2 = [objet componentsSeparatedByString:@":"];
+                    if ([array2 count]>1) {
+                        NSString *key = [array2 objectAtIndex:0];
+                        NSString *valeur = [array2 objectAtIndex:1];
+                        if (valeur && ![valeur isEqual:@"[]"]) {
+                            [customtargeting setObject:valeur forKey: key];
+                        }
+                    }
+                }
+            }
+
+            request.customTargeting = customtargeting;
+        }
+
+        request.testDevices = _testDevices;
+        [_bannerView loadRequest:request];
+    }
 }
 
 - (void)setValidAdSizes:(NSArray *)adSizes
 {
-    NSMutableArray *validAdSizes = [[NSMutableArray alloc] initWithCapacity:adSizes.count];
+    __block NSMutableArray *validAdSizes = [[NSMutableArray alloc] initWithCapacity:adSizes.count];
     [adSizes enumerateObjectsUsingBlock:^(id jsonValue, NSUInteger idx, __unused BOOL *stop) {
         GADAdSize adSize = [RCTConvert GADAdSize:jsonValue];
         if (GADAdSizeEqualToSize(adSize, kGADAdSizeInvalid)) {
@@ -71,10 +109,20 @@
     _bannerView.validAdSizes = validAdSizes;
 }
 
--(void)layoutSubviews
+- (void)layoutSubviews
 {
     [super layoutSubviews];
-    _bannerView.frame = self.bounds;
+
+    NSArray *array = [_bannerView.adUnitID componentsSeparatedByString:@"/"];
+    int compteur = (int)[array count] - 1;
+    NSString *finString = [array objectAtIndex:compteur];
+    if ([finString isEqualToString:@"native1"] || [finString isEqualToString:@"native2"]) {
+        _bannerView.frame = CGRectMake(self.bounds.origin.x, self.bounds.origin.x, [_fixedWidth intValue], [_fixedHeight intValue]);
+    } else {
+        _bannerView.frame = CGRectMake(self.bounds.origin.x, self.bounds.origin.x, _bannerView.frame.size.width, _bannerView.frame.size.height);
+    }
+
+    [self addSubview:_bannerView];
 }
 
 # pragma mark GADBannerViewDelegate
@@ -84,8 +132,8 @@
 {
     if (self.onSizeChange) {
         self.onSizeChange(@{
-                            @"width": @(adView.frame.size.width),
-                            @"height": @(adView.frame.size.height) });
+                            @"width": @([_fixedWidth intValue]),
+                            @"height": @([_fixedHeight intValue]) });
     }
     if (self.onAdLoaded) {
         self.onAdLoaded(@{});
@@ -131,10 +179,9 @@ didFailToReceiveAdWithError:(GADRequestError *)error
 
 - (void)adView:(GADBannerView *)bannerView willChangeAdSizeTo:(GADAdSize)size
 {
-    CGSize adSize = CGSizeFromGADAdSize(size);
     self.onSizeChange(@{
-                        @"width": @(adSize.width),
-                        @"height": @(adSize.height) });
+                        @"width": @([_fixedWidth intValue]),
+                        @"height": @([_fixedHeight intValue]) });
 }
 
 # pragma mark GADAppEventDelegate
@@ -147,3 +194,4 @@ didFailToReceiveAdWithError:(GADRequestError *)error
 }
 
 @end
+
