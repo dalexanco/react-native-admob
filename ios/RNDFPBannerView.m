@@ -57,8 +57,6 @@
         int compteur = (int)[array count] - 1;
         NSString *finString = [array objectAtIndex:compteur];
 
-        [_bannerView setAppEventDelegate:self];
-
         if(!CGRectEqualToRect(self.bounds, _bannerView.bounds)) {
             if ([finString isEqualToString:@"native1"] || [finString isEqualToString:@"native2"]) {
                 self.onSizeChange(@{
@@ -97,7 +95,7 @@
 
 - (void)setValidAdSizes:(NSArray *)adSizes
 {
-    __block NSMutableArray *validAdSizes = [[NSMutableArray alloc] initWithCapacity:adSizes.count];
+    NSMutableArray *validAdSizes = [[NSMutableArray alloc] initWithCapacity:adSizes.count];
     [adSizes enumerateObjectsUsingBlock:^(id jsonValue, NSUInteger idx, __unused BOOL *stop) {
         GADAdSize adSize = [RCTConvert GADAdSize:jsonValue];
         if (GADAdSizeEqualToSize(adSize, kGADAdSizeInvalid)) {
@@ -106,6 +104,7 @@
             [validAdSizes addObject:NSValueFromGADAdSize(adSize)];
         }
     }];
+
     _bannerView.validAdSizes = validAdSizes;
 }
 
