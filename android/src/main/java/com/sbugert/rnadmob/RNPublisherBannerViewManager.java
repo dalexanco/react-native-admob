@@ -61,7 +61,10 @@ class ReactPublisherAdView extends ReactViewGroup implements AppEventListener {
                 int left = adView.getLeft();
                 int top = adView.getTop();
 
-                if (adView.getAdUnitId().split("/")[adView.getAdUnitId().split("/").length - 1].equals("native1") || adView.getAdUnitId().split("/")[adView.getAdUnitId().split("/").length - 1].equals("native2")) {
+                String[] adUnitIdParts = adView.getAdUnitId().split("/");
+                String adUnitIdLastPart = adUnitIdParts[adUnitIdParts.length - 1];
+
+                if (adUnitIdLastPart.startsWith("native")) {
                     WindowManager mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
                     Display display = mWindowManager.getDefaultDisplay();
                     DisplayMetrics displaymetrics = new DisplayMetrics();
